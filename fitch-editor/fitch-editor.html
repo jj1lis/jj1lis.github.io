@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitch Proof Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="editor">
+        <h1>Fitch Style Proof Editor 📝</h1>
+        <div id="proof-container">
+            </div>
+        <button id="add-line-btn">行を追加</button>
+        <hr>
+    </div>
+
+    <div class="output">
+        <h2>JSON Output 📄</h2>
+        <button id="copy-json-btn">クリップボードにコピー</button>
+        <pre id="json-output"></pre>
+    </div>
+
+    <div id="notification"></div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>
