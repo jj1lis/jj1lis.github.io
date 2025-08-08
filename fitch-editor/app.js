@@ -31,6 +31,28 @@ function addLine() {
     proofState.push(newLine);
     render(); // データを変更したので画面を再描画
 }
+// [Action] 指定されたIDの行の真下に行を追加する
+function addLineBelow(targetId) {
+    var targetIndex = -1;
+    for (var i = 0; i < proofState.length; i++) {
+        if (proofState[i].id == targetId) {
+            targetIndex = i;
+            break;
+        }
+    }
+    if (targetIndex == -1) {
+        return undefined;
+    }
+    var newLine = {
+        id: nextId++,
+        level: proofState[targetIndex].level,
+        formula: '',
+        rule: '',
+        isAssumption: false,
+    };
+    proofState.splice(targetIndex - 1, 0, newLine);
+    render(); // データを変更したので画面を再描画
+}
 // [Action] 指定されたIDの行を削除する
 function deleteLine(id) {
     proofState = proofState.filter(function (line) { return line.id !== id; });
@@ -182,7 +204,7 @@ function render() {
         }
         var checkedAttribute = line.isAssumption ? 'checked' : '';
         var ruleInputDisabled = line.isAssumption ? 'disabled' : '';
-        mainContent.innerHTML = "\n        <div class=\"line-controls\">\n          <button onclick=\"decreaseIndent(".concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\u89E3\u9664\">\u25C0</button>\n          <button onclick=\"increaseIndent(").concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\">\u25B6</button>\n        </div>\n        <div class=\"line-content\">\n          <input type=\"text\" value=\"").concat(line.formula, "\" oninput=\"updateFormula(").concat(line.id, ", this.value)\" placeholder=\"\u547D\u984C\">\n          <input type=\"text\" value=\"").concat(line.rule, "\" oninput=\"updateRule(").concat(line.id, ", this.value)\" placeholder=\"\u30EB\u30FC\u30EB\" ").concat(ruleInputDisabled, ">\n        </div>\n        <div class=\"line-options\">\n          <input type=\"checkbox\" id=\"assumption-").concat(line.id, "\" onchange=\"toggleAssumption(").concat(line.id, ")\" ").concat(checkedAttribute, ">\n          <label for=\"assumption-").concat(line.id, "\">\u4EEE\u5B9A</label>\n        </div>\n        <button onclick=\"deleteLine(").concat(line.id, ")\" title=\"\u884C\u3092\u524A\u9664\">\u00D7</button>\n      ");
+        mainContent.innerHTML = "\n        <div class=\"line-controls\">\n          <div class=\"top-buttons\">\n            <button onclick=\"decreaseIndent(".concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\u89E3\u9664\">\u25C0</button>\n            <button onclick=\"increaseIndent(").concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\">\u25B6</button>\n          </div>\n          <button class=\"bottom-button\" onclick=\"addLineBelow(").concat(line.id, ")\" title=\"\u4E0B\u306B\u884C\u3092\u8FFD\u52A0\">\u4E0B\u306B\u8FFD\u52A0</button>\n        </div>\n        <div class=\"line-content\">\n          <input type=\"text\" value=\"").concat(line.formula, "\" oninput=\"updateFormula(").concat(line.id, ", this.value)\" placeholder=\"\u547D\u984C\">\n          <input type=\"text\" value=\"").concat(line.rule, "\" oninput=\"updateRule(").concat(line.id, ", this.value)\" placeholder=\"\u30EB\u30FC\u30EB\" ").concat(ruleInputDisabled, ">\n        </div>\n        <div class=\"line-options\">\n          <input type=\"checkbox\" id=\"assumption-").concat(line.id, "\" onchange=\"toggleAssumption(").concat(line.id, ")\" ").concat(checkedAttribute, ">\n          <label for=\"assumption-").concat(line.id, "\">\u4EEE\u5B9A</label>\n        </div>\n        <button onclick=\"deleteLine(").concat(line.id, ")\" title=\"\u884C\u3092\u524A\u9664\">\u00D7</button>\n      ");
         // --- 要素の組み立て ---
         lineEl.appendChild(lineBarsContainer);
         lineEl.appendChild(mainContent);

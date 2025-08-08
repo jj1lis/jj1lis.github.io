@@ -48,6 +48,29 @@ function addLine() {
   render(); // データを変更したので画面を再描画
 }
 
+// [Action] 指定されたIDの行の真下に行を追加する
+function addLineBelow(targetId: number) {
+  let targetIndex: number = -1;
+  for (let i : number = 0; i < proofState.length; i++) {
+    if (proofState[i].id == targetId) {
+      targetIndex = i;
+      break;
+    }
+  }
+  if (targetIndex == -1) {
+    return undefined;
+  }
+  const newLine: ProofLine = {
+    id: nextId++,
+    level: proofState[targetIndex].level,
+    formula: '',
+    rule: '',
+    isAssumption: false,
+  };
+  proofState.splice(targetIndex - 1, 0, newLine);
+  render(); // データを変更したので画面を再描画
+}
+
 // [Action] 指定されたIDの行を削除する
 function deleteLine(id: number) {
   proofState = proofState.filter(line => line.id !== id);
@@ -220,8 +243,11 @@ function render() {
     const ruleInputDisabled = line.isAssumption ? 'disabled' : '';
       mainContent.innerHTML = `
         <div class="line-controls">
-          <button onclick="decreaseIndent(${line.id})" title="インデント解除">◀</button>
-          <button onclick="increaseIndent(${line.id})" title="インデント">▶</button>
+          <div class="top-buttons">
+            <button onclick="decreaseIndent(${line.id})" title="インデント解除">◀</button>
+            <button onclick="increaseIndent(${line.id})" title="インデント">▶</button>
+          </div>
+          <button class="bottom-button" onclick="addLineBelow(${line.id})" title="下に行を追加">下に追加</button>
         </div>
         <div class="line-content">
           <input type="text" value="${line.formula}" oninput="updateFormula(${line.id}, this.value)" placeholder="命題">

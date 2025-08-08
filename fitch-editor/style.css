@@ -23,10 +23,22 @@ body {
     margin-bottom: 5px;
 }
 
-.line-controls {
+/* .line-controls { */
+/*     display: flex; */
+/*     align-items: center; */
+/*     margin-right: 8px; */
+/* } */
+
+.line-controls .top-buttons {
     display: flex;
-    align-items: center;
-    margin-right: 8px;
+    gap: 10px;
+}
+
+.line-controls .bottom-button {
+    width: 100%;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    font-size: smaller;
 }
 
 .line-content {
