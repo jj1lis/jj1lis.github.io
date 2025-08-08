@@ -8,6 +8,18 @@ interface ProofLine {
   isAssumption: boolean;  // それが仮定の導入であるか
 }
 
+// 証明図を表現するJSONの型
+interface ProofTreeNode {
+  id: number;
+  rule: string;
+  premises?: ProofTreeNode[];
+  isAssumption: boolean;
+  conclusion: string;
+}
+
+// 証明図の要素の型
+type ProofTree1Element = ProofLine | ProofTree1Element[];
+
 // アプリケーションの「状態」として，証明全体のデータを配列で管理
 let proofState: ProofLine[] = [];
 let nextId = 1; // 次に採番するID
@@ -112,10 +124,68 @@ function getOutputState() {
   }));
 }
 
+// 行をただ1つの要素からなる木に変換する
+function makeTree(line: ProofLine) : ProofTreeNode {
+  const ret : ProofTreeNode = {
+    id: line.id,
+    rule: line.rule,
+    premises: [],
+    isAssumption: line.isAssumption,
+    conclusion: line.formula
+  } 
+  return ret;
+}
+
+// 状態を木に変換する
+function convertStateToTree01(state : ProofLine[], baseLevel : number) // : ProofTree | undefined {
+{
+  if (state.length == 0) {
+    return undefined;
+  }
+  let tree : ProofTree1Element[] = [];
+  for (let i : number = 0; i < state.length; i++) {
+    if (state[i].level == baseLevel) {
+      tree.push(state[i]);
+      continue;
+    }
+    let j = i;
+    while (j < state.length && baseLevel < state[j].level) {
+      j++;
+    }
+    const sub = convertStateToTree01(state.slice(i, j), baseLevel + 1);
+    if (sub != undefined) {
+      tree.push(sub);
+    }
+    i = j - 1;
+  }
+  return tree;
+}
+
+// 状態を木に変換する
+function convertStateToTree02(state : ProofLine[], baseLevel : number) // : ProofTree | undefined {
+{
+  const last = state.pop();
+  if (last === undefined) {
+    return undefined;
+  } else if (last.level != baseLevel) {
+    return undefined;
+  }
+  
+  const tree : ProofTreeNode = {
+    id: last.id,
+    rule: last.rule,
+    isAssumption: last.isAssumption,
+    conclusion: last.formula,
+  };
+  return state.concat([last]);
+}
+
+
 // `proofState` の内容を元にJSON出力を更新する
 function renderJson() {
-    const outputState = getOutputState();
-    jsonOutput.textContent = JSON.stringify(outputState, null, 2);
+    // const outputState = getOutputState();
+    // jsonOutput.textContent = JSON.stringify(outputState, null, 2);
+    jsonOutput.textContent = JSON.stringify(convertStateToTree01([...proofState], 0), null, 2);
 }
 
 // `proofState` の内容を元に，証明全体のHTMLを描画する

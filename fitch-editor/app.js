@@ -1,3 +1,12 @@
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 // アプリケーションの「状態」として，証明全体のデータを配列で管理
 var proofState = [];
 var nextId = 1; // 次に採番するID
@@ -90,10 +99,62 @@ function getOutputState() {
         rule: line.rule,
     }); });
 }
+// 行をただ1つの要素からなる木に変換する
+function makeTree(line) {
+    var ret = {
+        id: line.id,
+        rule: line.rule,
+        premises: [],
+        isAssumption: line.isAssumption,
+        conclusion: line.formula
+    };
+    return ret;
+}
+// 状態を木に変換する
+function convertStateToTree01(state, baseLevel) {
+    if (state.length == 0) {
+        return undefined;
+    }
+    var tree = [];
+    for (var i = 0; i < state.length; i++) {
+        if (state[i].level == baseLevel) {
+            tree.push(state[i]);
+            continue;
+        }
+        var j = i;
+        while (j < state.length && baseLevel < state[j].level) {
+            j++;
+        }
+        var sub = convertStateToTree01(state.slice(i, j), baseLevel + 1);
+        if (sub != undefined) {
+            tree.push(sub);
+        }
+        i = j - 1;
+    }
+    return tree;
+}
+// 状態を木に変換する
+function convertStateToTree02(state, baseLevel) {
+    var last = state.pop();
+    if (last === undefined) {
+        return undefined;
+    }
+    else if (last.level != baseLevel) {
+        return undefined;
+    }
+    var tree = {
+        id: last.id,
+        rule: last.rule,
+        isAssumption: last.isAssumption,
+        conclusion: last.formula,
+    };
+    return state.concat([last]);
+}
 // `proofState` の内容を元にJSON出力を更新する
 function renderJson() {
-    var outputState = getOutputState();
-    jsonOutput.textContent = JSON.stringify(outputState, null, 2);
+    // const outputState = getOutputState();
+    // jsonOutput.textContent = JSON.stringify(outputState, null, 2);
+    jsonOutput.textContent = JSON.stringify(convertStateToTree01(__spreadArray([], proofState, true), 0), null, 2);
 }
 // `proofState` の内容を元に，証明全体のHTMLを描画する
 // `app.ts` の既存の render 関数を、以下に置き換える
