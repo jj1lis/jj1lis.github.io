@@ -50,7 +50,7 @@ function addLineBelow(targetId) {
         rule: '',
         isAssumption: false,
     };
-    proofState.splice(targetIndex - 1, 0, newLine);
+    proofState.splice(targetIndex + 1, 0, newLine);
     render(); // データを変更したので画面を再描画
 }
 // [Action] 指定されたIDの行を削除する
@@ -121,33 +121,34 @@ function getOutputState() {
         rule: line.rule,
     }); });
 }
-// 行をただ1つの要素からなる木に変換する
-function makeTree(line) {
+// 行を証明木の要素に変換する
+function makeTreeNode(line) {
     var ret = {
-        id: line.id,
+        id: [],
+        formula: line.formula,
         rule: line.rule,
-        premises: [],
         isAssumption: line.isAssumption,
-        conclusion: line.formula
     };
     return ret;
 }
 // 状態を木に変換する
-function convertStateToTree01(state, baseLevel) {
+function convertStateToTree(state, baseLevel, idBase) {
     if (state.length == 0) {
         return undefined;
     }
     var tree = [];
-    for (var i = 0; i < state.length; i++) {
+    for (var i = 0, idIndex = -1; i < state.length; i++) {
         if (state[i].level == baseLevel) {
-            tree.push(state[i]);
+            var line = makeTreeNode(state[i]);
+            line.id = idBase.concat([++idIndex]);
+            tree.push(line);
             continue;
         }
         var j = i;
         while (j < state.length && baseLevel < state[j].level) {
             j++;
         }
-        var sub = convertStateToTree01(state.slice(i, j), baseLevel + 1);
+        var sub = convertStateToTree(state.slice(i, j), baseLevel + 1, idBase.concat([idIndex]));
         if (sub != undefined) {
             tree.push(sub);
         }
@@ -155,28 +156,11 @@ function convertStateToTree01(state, baseLevel) {
     }
     return tree;
 }
-// 状態を木に変換する
-function convertStateToTree02(state, baseLevel) {
-    var last = state.pop();
-    if (last === undefined) {
-        return undefined;
-    }
-    else if (last.level != baseLevel) {
-        return undefined;
-    }
-    var tree = {
-        id: last.id,
-        rule: last.rule,
-        isAssumption: last.isAssumption,
-        conclusion: last.formula,
-    };
-    return state.concat([last]);
-}
 // `proofState` の内容を元にJSON出力を更新する
 function renderJson() {
     // const outputState = getOutputState();
     // jsonOutput.textContent = JSON.stringify(outputState, null, 2);
-    jsonOutput.textContent = JSON.stringify(convertStateToTree01(__spreadArray([], proofState, true), 0), null, 2);
+    jsonOutput.textContent = JSON.stringify(convertStateToTree(__spreadArray([], proofState, true), 0, []), null, 2);
 }
 // `proofState` の内容を元に，証明全体のHTMLを描画する
 // `app.ts` の既存の render 関数を、以下に置き換える
@@ -204,7 +188,7 @@ function render() {
         }
         var checkedAttribute = line.isAssumption ? 'checked' : '';
         var ruleInputDisabled = line.isAssumption ? 'disabled' : '';
-        mainContent.innerHTML = "\n        <div class=\"line-controls\">\n          <div class=\"top-buttons\">\n            <button onclick=\"decreaseIndent(".concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\u89E3\u9664\">\u25C0</button>\n            <button onclick=\"increaseIndent(").concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\">\u25B6</button>\n          </div>\n          <button class=\"bottom-button\" onclick=\"addLineBelow(").concat(line.id, ")\" title=\"\u4E0B\u306B\u884C\u3092\u8FFD\u52A0\">\u4E0B\u306B\u8FFD\u52A0</button>\n        </div>\n        <div class=\"line-content\">\n          <input type=\"text\" value=\"").concat(line.formula, "\" oninput=\"updateFormula(").concat(line.id, ", this.value)\" placeholder=\"\u547D\u984C\">\n          <input type=\"text\" value=\"").concat(line.rule, "\" oninput=\"updateRule(").concat(line.id, ", this.value)\" placeholder=\"\u30EB\u30FC\u30EB\" ").concat(ruleInputDisabled, ">\n        </div>\n        <div class=\"line-options\">\n          <input type=\"checkbox\" id=\"assumption-").concat(line.id, "\" onchange=\"toggleAssumption(").concat(line.id, ")\" ").concat(checkedAttribute, ">\n          <label for=\"assumption-").concat(line.id, "\">\u4EEE\u5B9A</label>\n        </div>\n        <button onclick=\"deleteLine(").concat(line.id, ")\" title=\"\u884C\u3092\u524A\u9664\">\u00D7</button>\n      ");
+        mainContent.innerHTML = "\n      <div class=\"line-controls\">\n        <div class=\"top-buttons\">\n          <button onclick=\"decreaseIndent(".concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\u89E3\u9664\">\u25C0</button>\n          <button onclick=\"increaseIndent(").concat(line.id, ")\" title=\"\u30A4\u30F3\u30C7\u30F3\u30C8\">\u25B6</button>\n        </div>\n        <button class=\"bottom-button\" onclick=\"addLineBelow(").concat(line.id, ")\" title=\"\u4E0B\u306B\u884C\u3092\u8FFD\u52A0\">\u4E0B\u306B\u8FFD\u52A0</button>\n      </div>\n      <div class=\"line-content\">\n        <input type=\"text\" value=\"").concat(line.formula, "\" oninput=\"updateFormula(").concat(line.id, ", this.value)\" placeholder=\"\u547D\u984C\">\n        <input type=\"text\" value=\"").concat(line.rule, "\" oninput=\"updateRule(").concat(line.id, ", this.value)\" placeholder=\"\u30EB\u30FC\u30EB\" ").concat(ruleInputDisabled, ">\n      </div>\n      <div class=\"line-options\">\n        <input type=\"checkbox\" id=\"assumption-").concat(line.id, "\" onchange=\"toggleAssumption(").concat(line.id, ")\" ").concat(checkedAttribute, ">\n        <label for=\"assumption-").concat(line.id, "\">\u4EEE\u5B9A</label>\n      </div>\n      <button onclick=\"deleteLine(").concat(line.id, ")\" title=\"\u884C\u3092\u524A\u9664\">\u00D7</button>\n      ");
         // --- 要素の組み立て ---
         lineEl.appendChild(lineBarsContainer);
         lineEl.appendChild(mainContent);

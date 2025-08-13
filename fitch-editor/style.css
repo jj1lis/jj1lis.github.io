@@ -23,11 +23,10 @@ body {
     margin-bottom: 5px;
 }
 
-/* .line-controls { */
-/*     display: flex; */
-/*     align-items: center; */
-/*     margin-right: 8px; */
-/* } */
+.line-controls {
+    align-items: center;
+    margin: 5px;
+}
 
 .line-controls .top-buttons {
     display: flex;

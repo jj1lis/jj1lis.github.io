@@ -10,15 +10,14 @@ interface ProofLine {
 
 // 証明図を表現するJSONの型
 interface ProofTreeNode {
-  id: number;
+  id: number[];
+  formula: string;
   rule: string;
-  premises?: ProofTreeNode[];
   isAssumption: boolean;
-  conclusion: string;
 }
 
 // 証明図の要素の型
-type ProofTree1Element = ProofLine | ProofTree1Element[];
+type ProofTree = ProofTreeNode | ProofTree[];
 
 // アプリケーションの「状態」として，証明全体のデータを配列で管理
 let proofState: ProofLine[] = [];
@@ -67,7 +66,7 @@ function addLineBelow(targetId: number) {
     rule: '',
     isAssumption: false,
   };
-  proofState.splice(targetIndex - 1, 0, newLine);
+  proofState.splice(targetIndex + 1, 0, newLine);
   render(); // データを変更したので画面を再描画
 }
 
@@ -147,35 +146,35 @@ function getOutputState() {
   }));
 }
 
-// 行をただ1つの要素からなる木に変換する
-function makeTree(line: ProofLine) : ProofTreeNode {
+// 行を証明木の要素に変換する
+function makeTreeNode(line: ProofLine) : ProofTreeNode {
   const ret : ProofTreeNode = {
-    id: line.id,
+    id: [],
+    formula: line.formula,
     rule: line.rule,
-    premises: [],
     isAssumption: line.isAssumption,
-    conclusion: line.formula
   } 
   return ret;
 }
 
 // 状態を木に変換する
-function convertStateToTree01(state : ProofLine[], baseLevel : number) // : ProofTree | undefined {
-{
+function convertStateToTree(state : ProofLine[], baseLevel : number, idBase : number[]) : ProofTree[] | undefined {
   if (state.length == 0) {
     return undefined;
   }
-  let tree : ProofTree1Element[] = [];
-  for (let i : number = 0; i < state.length; i++) {
+  let tree : ProofTree[] = [];
+  for (let i : number = 0, idIndex : number = -1; i < state.length; i++) {
     if (state[i].level == baseLevel) {
-      tree.push(state[i]);
+      const line = makeTreeNode(state[i]);
+      line.id = idBase.concat([++idIndex]);
+      tree.push(line);
       continue;
     }
     let j = i;
     while (j < state.length && baseLevel < state[j].level) {
       j++;
     }
-    const sub = convertStateToTree01(state.slice(i, j), baseLevel + 1);
+    const sub = convertStateToTree(state.slice(i, j), baseLevel + 1, idBase.concat([idIndex]));
     if (sub != undefined) {
       tree.push(sub);
     }
@@ -184,31 +183,11 @@ function convertStateToTree01(state : ProofLine[], baseLevel : number) // : Proo
   return tree;
 }
 
-// 状態を木に変換する
-function convertStateToTree02(state : ProofLine[], baseLevel : number) // : ProofTree | undefined {
-{
-  const last = state.pop();
-  if (last === undefined) {
-    return undefined;
-  } else if (last.level != baseLevel) {
-    return undefined;
-  }
-  
-  const tree : ProofTreeNode = {
-    id: last.id,
-    rule: last.rule,
-    isAssumption: last.isAssumption,
-    conclusion: last.formula,
-  };
-  return state.concat([last]);
-}
-
-
 // `proofState` の内容を元にJSON出力を更新する
 function renderJson() {
-    // const outputState = getOutputState();
-    // jsonOutput.textContent = JSON.stringify(outputState, null, 2);
-    jsonOutput.textContent = JSON.stringify(convertStateToTree01([...proofState], 0), null, 2);
+  // const outputState = getOutputState();
+  // jsonOutput.textContent = JSON.stringify(outputState, null, 2);
+  jsonOutput.textContent = JSON.stringify(convertStateToTree([...proofState], 0, []), null, 2);
 }
 
 // `proofState` の内容を元に，証明全体のHTMLを描画する
@@ -228,11 +207,11 @@ function render() {
 
     // levelの数だけ縦線を追加
     for (let i = 0; i < line.level; i++) {
-        const bar = document.createElement('span');
-        bar.className = 'line-bar';
-        lineBarsContainer.appendChild(bar);
+      const bar = document.createElement('span');
+      bar.className = 'line-bar';
+      lineBarsContainer.appendChild(bar);
     }
-    
+
     // --- メインコンテンツ部分 ---
     const mainContent = document.createElement('div');
     mainContent.className = 'line-main-content';
@@ -241,23 +220,23 @@ function render() {
     }
     const checkedAttribute = line.isAssumption ? 'checked' : '';
     const ruleInputDisabled = line.isAssumption ? 'disabled' : '';
-      mainContent.innerHTML = `
-        <div class="line-controls">
-          <div class="top-buttons">
-            <button onclick="decreaseIndent(${line.id})" title="インデント解除">◀</button>
-            <button onclick="increaseIndent(${line.id})" title="インデント">▶</button>
-          </div>
-          <button class="bottom-button" onclick="addLineBelow(${line.id})" title="下に行を追加">下に追加</button>
+    mainContent.innerHTML = `
+      <div class="line-controls">
+        <div class="top-buttons">
+          <button onclick="decreaseIndent(${line.id})" title="インデント解除">◀</button>
+          <button onclick="increaseIndent(${line.id})" title="インデント">▶</button>
         </div>
-        <div class="line-content">
-          <input type="text" value="${line.formula}" oninput="updateFormula(${line.id}, this.value)" placeholder="命題">
-          <input type="text" value="${line.rule}" oninput="updateRule(${line.id}, this.value)" placeholder="ルール" ${ruleInputDisabled}>
-        </div>
-        <div class="line-options">
-          <input type="checkbox" id="assumption-${line.id}" onchange="toggleAssumption(${line.id})" ${checkedAttribute}>
-          <label for="assumption-${line.id}">仮定</label>
-        </div>
-        <button onclick="deleteLine(${line.id})" title="行を削除">×</button>
+        <button class="bottom-button" onclick="addLineBelow(${line.id})" title="下に行を追加">下に追加</button>
+      </div>
+      <div class="line-content">
+        <input type="text" value="${line.formula}" oninput="updateFormula(${line.id}, this.value)" placeholder="命題">
+        <input type="text" value="${line.rule}" oninput="updateRule(${line.id}, this.value)" placeholder="ルール" ${ruleInputDisabled}>
+      </div>
+      <div class="line-options">
+        <input type="checkbox" id="assumption-${line.id}" onchange="toggleAssumption(${line.id})" ${checkedAttribute}>
+        <label for="assumption-${line.id}">仮定</label>
+      </div>
+      <button onclick="deleteLine(${line.id})" title="行を削除">×</button>
       `;
 
     // --- 要素の組み立て ---
@@ -288,20 +267,20 @@ function showNotification(message: string) {
 
 // JSONをクリップボードにコピーする関数
 function copyToClipboard() {
-    const outputState = getOutputState();
-    const jsonText = JSON.stringify(outputState, null, 2);
-    if (jsonText) {
-        navigator.clipboard.writeText(jsonText)
-            .then(() => {
-                showNotification('JSONをクリップボードにコピーしました')
-            })
-            .catch(err => {
-                showNotification('JSONのコピーに失敗しました．')
-                console.error('クリップボードへのコピーに失敗しました: ', err)
-            });
-    } else {
-        alert('出力するJSONがありません。');
-    }
+  const outputState = getOutputState();
+  const jsonText = JSON.stringify(outputState, null, 2);
+  if (jsonText) {
+    navigator.clipboard.writeText(jsonText)
+      .then(() => {
+        showNotification('JSONをクリップボードにコピーしました')
+      })
+      .catch(err => {
+        showNotification('JSONのコピーに失敗しました．')
+        console.error('クリップボードへのコピーに失敗しました: ', err)
+      });
+  } else {
+    alert('出力するJSONがありません。');
+  }
 }
 
 // --- 初期化処理 ---
